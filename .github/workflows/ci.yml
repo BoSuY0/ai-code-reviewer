@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Format (black)
+        run: black --check .
+      - name: Lint (flake8)
+        run: flake8 src tests
+      - name: Types (mypy)
+        run: mypy --strict src tests
+      - name: Tests with coverage
+        run: >
+          pytest --cov=src --cov-branch --cov-report=term
+          --cov-report=xml --cov-fail-under=90
+      - uses: actions/upload-artifact@v7
+        if: matrix.python-version == '3.11'
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  docker:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build -t ai-code-reviewer:ci .
+      - name: Smoke test
+        run: |
+          docker run -d --name reviewer -p 127.0.0.1:8000:8000 ai-code-reviewer:ci
+          curl -fsS --retry 10 --retry-delay 1 --retry-all-errors \
+            http://127.0.0.1:8000/health
+          status=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{"code": ""}' \
+            http://127.0.0.1:8000/review)
+          test "$status" = 422
+      - name: Container logs
+        if: always()
+        run: docker logs reviewer || true
