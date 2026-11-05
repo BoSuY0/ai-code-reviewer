@@ -27,7 +27,7 @@ def llm_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
 def test_health() -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "version": app.version}
 
 
 def test_review_code_combines_static_analysis_and_llm(
