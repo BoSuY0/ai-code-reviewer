@@ -37,14 +37,17 @@ def _command(tool: str, tmp: Path, files: list[str]) -> list[str]:
     if tool == "flake8":
         return [
             sys.executable,
+            "-I",
             "-m",
             "flake8",
             "--isolated",
             "--max-line-length=88",
+            "--",
             *files,
         ]
     return [
         sys.executable,
+        "-I",
         "-m",
         "mypy",
         "--strict",
@@ -54,6 +57,7 @@ def _command(tool: str, tmp: Path, files: list[str]) -> list[str]:
         "--show-column-numbers",
         "--no-error-summary",
         "--no-color-output",
+        "--",
         *files,
     ]
 

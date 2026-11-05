@@ -22,7 +22,9 @@ PR_URL_PATTERN = re.compile(
     re.ASCII,
 )
 # Relative POSIX path of a .py file: no leading "/", no "." or ".." segments.
-SAFE_FILE_PATH = re.compile(r"^(?:(?!\.\.?/)[\w.-]+/)*[\w.-]+\.py$", re.ASCII)
+# Relative path of a .py file: no "." or ".." segments and no segment that
+# starts with "-", so a name can never be read as a command-line option.
+SAFE_FILE_PATH = re.compile(r"^(?:(?!\.\.?/|-)[\w.-]+/)*(?!-)[\w.-]+\.py$", re.ASCII)
 
 
 class ReviewRequest(BaseModel):
