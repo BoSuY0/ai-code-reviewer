@@ -1,0 +1,31 @@
+default_stages: [pre-commit]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: detect-private-key
+  - repo: https://github.com/psf/black
+    rev: 26.10.1
+    hooks:
+      - id: black
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.5.0
+    hooks:
+      - id: flake8
+        exclude: ^samples/
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.1
+    hooks:
+      - id: mypy
+        args: [--strict]
+        additional_dependencies: [pytest, pydantic, fastapi, httpx, openai, python-dotenv]
+        exclude: ^samples/
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.19.3
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
