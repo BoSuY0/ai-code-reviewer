@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -64,3 +64,13 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs reviewer || true
+      # Delivery: only a tested image from main is packaged and kept.
+      - name: Package image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker save ai-code-reviewer:ci | gzip > ai-code-reviewer-image.tar.gz
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: ai-code-reviewer-image-${{ github.sha }}
+          path: ai-code-reviewer-image.tar.gz
+          retention-days: 7
