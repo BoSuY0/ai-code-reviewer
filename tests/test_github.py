@@ -16,12 +16,15 @@ def content(text: str) -> dict[str, object]:
     return {"encoding": "base64", "content": encoded, "size": len(text)}
 
 
-def github(files: list[dict[str, str]], sources: dict[str, str]) -> Handler:
+def github(
+    files: list[dict[str, str]], sources: dict[str, str], private: bool = False
+) -> Handler:
     def handle(request: httpx.Request) -> httpx.Response:
         assert request.url.host == "api.github.com"
         path = request.url.path
         if path == "/repos/octo/demo/pulls/7":
-            return httpx.Response(200, json={"head": {"sha": "abc123"}})
+            pr = {"head": {"sha": "abc123"}, "base": {"repo": {"private": private}}}
+            return httpx.Response(200, json=pr)
         if path == "/repos/octo/demo/pulls/7/files":
             return httpx.Response(200, json=files)
         name = path.removeprefix("/repos/octo/demo/contents/")
@@ -65,6 +68,13 @@ def test_rejected_pull_requests(
     assert info.value.status == status
 
 
+def test_private_repositories_are_refused() -> None:
+    files = [{"filename": "app.py", "status": "added"}]
+    with pytest.raises(GitHubError, match="public") as info:
+        fetch(github(files, {"app.py": "x = 1\n"}, private=True))
+    assert info.value.status == 403
+
+
 def test_total_size_is_limited() -> None:
     files = [{"filename": "big.py", "status": "added"}]
     with pytest.raises(GitHubError, match="exceed") as info:
@@ -78,7 +88,8 @@ def test_non_base64_content_is_an_error() -> None:
             return httpx.Response(200, json=[{"filename": "a.py", "status": "added"}])
         if "/contents/" in request.url.path:
             return httpx.Response(200, json={"encoding": "none", "size": 1})
-        return httpx.Response(200, json={"head": {"sha": "abc123"}})
+        pr = {"head": {"sha": "abc123"}, "base": {"repo": {"private": False}}}
+        return httpx.Response(200, json=pr)
 
     with pytest.raises(GitHubError, match="cannot read a.py") as info:
         fetch(handler)

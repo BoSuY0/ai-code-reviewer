@@ -58,7 +58,17 @@ def test_submitted_code_is_never_executed(tmp_path: Path) -> None:
     assert not marker.exists()
 
 
-@pytest.mark.parametrize("name", ["../x.py", "/etc/x.py", "a/./b.py", "x.txt"])
+@pytest.mark.parametrize("name", ["flake8.py", "mypy.py"])
+def test_submitted_module_cannot_shadow_a_tool(tmp_path: Path, name: str) -> None:
+    marker = tmp_path / "executed"
+    code = f"open({str(marker)!r}, 'w').write('x')\n"
+    run_static_analysis({name: code})
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize(
+    "name", ["../x.py", "/etc/x.py", "a/./b.py", "x.txt", "-x.py", "a/--b.py"]
+)
 def test_unsafe_file_names_are_refused(name: str) -> None:
     with pytest.raises(UnsafePathError):
         run_static_analysis({name: GOOD})
@@ -76,8 +86,12 @@ def test_tools_run_without_shell_or_secrets(
 
     monkeypatch.setattr("src.services.analyzer.subprocess.run", fake_run)
     run_static_analysis({"submitted.py": GOOD})
-    assert [call["cmd"][2] for call in seen] == ["flake8", "mypy"]
+    assert [call["cmd"][1:4] for call in seen] == [
+        ["-I", "-m", "flake8"],
+        ["-I", "-m", "mypy"],
+    ]
     for call in seen:
+        assert call["cmd"][-2:] == ["--", "submitted.py"]
         assert call["shell"] is False
         assert call["timeout"] == analyzer.TIMEOUT_SECONDS
         assert "OPENROUTER_API_KEY" not in call["env"]
