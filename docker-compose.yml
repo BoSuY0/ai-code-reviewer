@@ -1,0 +1,18 @@
+services:
+  reviewer:
+    build: .
+    image: ai-code-reviewer:local
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    # Submitted code is analyzed by flake8/mypy inside this container, so it
+    # gets a read-only root, no extra privileges and bounded resources.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 64
+    restart: unless-stopped

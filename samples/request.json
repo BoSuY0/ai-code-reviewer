@@ -1,0 +1,3 @@
+{
+  "code": "import os\nimport sqlite3\n\n\ndef find_user(db, name):\n    cur = db.cursor()\n    cur.execute(\"SELECT * FROM users WHERE name = '\" + name + \"'\")\n    return cur.fetchone()\n\n\ndef average(values: list[float]) -> float:\n    return sum(values) / len(values)\n"
+}
