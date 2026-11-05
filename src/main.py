@@ -12,7 +12,7 @@ app = FastAPI(title="AI Code Reviewer", version="1.0.0")
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": app.version}
 
 
 @app.post("/review", response_model=ReviewResponse)
