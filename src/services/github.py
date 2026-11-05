@@ -59,6 +59,9 @@ def fetch_pr_files(
     )
     try:
         pr = _get(client, f"{repo}/pulls/{match['number']}").json()
+        # A token may see private code; never forward it to the LLM.
+        if pr.get("base", {}).get("repo", {}).get("private", True):
+            raise GitHubError("only public repositories can be reviewed", status=403)
         listing = _get(
             client, f"{repo}/pulls/{match['number']}/files", per_page=100
         ).json()
